@@ -1,7 +1,6 @@
 // Vercel Serverless Function - Main API Handler with Real Database
-const { registerUser, loginUser, getUserProfile, updateUserProfile, getAllUsers, authenticateToken } = require('../controllers/userController');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -21,15 +20,26 @@ export default async function handler(req, res) {
   try {
     // Route handling with database support
     if (url === '/api/auth/login' && method === 'POST') {
-      return hasDatabase ? await loginUser(req, res) : handleLogin(req, res);
+      if (hasDatabase) {
+        const { loginUser } = require('../controllers/userController');
+        return await loginUser(req, res);
+      } else {
+        return handleLogin(req, res);
+      }
     }
     
     if (url === '/api/auth/register' && method === 'POST') {
-      return hasDatabase ? await registerUser(req, res) : handleRegister(req, res);
+      if (hasDatabase) {
+        const { registerUser } = require('../controllers/userController');
+        return await registerUser(req, res);
+      } else {
+        return handleRegister(req, res);
+      }
     }
     
     if (url === '/api/auth/profile' && method === 'GET') {
       if (hasDatabase) {
+        const { getUserProfile, authenticateToken } = require('../controllers/userController');
         return authenticateToken(req, res, () => getUserProfile(req, res));
       } else {
         return handleProfile(req, res);
@@ -38,6 +48,7 @@ export default async function handler(req, res) {
     
     if (url === '/api/auth/profile' && method === 'PUT') {
       if (hasDatabase) {
+        const { updateUserProfile, authenticateToken } = require('../controllers/userController');
         return authenticateToken(req, res, () => updateUserProfile(req, res));
       } else {
         return handleUpdateProfile(req, res);
@@ -46,6 +57,7 @@ export default async function handler(req, res) {
     
     if (url === '/api/auth/users' && method === 'GET') {
       if (hasDatabase) {
+        const { getAllUsers, authenticateToken } = require('../controllers/userController');
         return authenticateToken(req, res, () => getAllUsers(req, res));
       } else {
         return handleGetUsers(req, res);

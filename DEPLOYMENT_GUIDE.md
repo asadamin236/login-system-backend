@@ -60,10 +60,12 @@ After setting environment variables:
 
 ## What Was Changed
 
-1. **Updated `/api/auth/register.js`**: Now uses real database controller when environment variables are available
-2. **Updated `/api/auth/login.js`**: Now uses real database controller when environment variables are available  
-3. **Updated `/api/index.js`**: Main API handler now routes to database controllers with proper authentication
-4. **Updated `vercel.json`**: Better routing configuration and function timeouts for database operations
+1. **Fixed Module System Compatibility**: Converted all serverless functions from ES modules (`export default`) to CommonJS (`module.exports`) to match the project configuration
+2. **Updated `/api/auth/register.js`**: Now properly handles database connections with fallback to mock mode
+3. **Updated `/api/auth/login.js`**: Now properly handles database connections with fallback to mock mode  
+4. **Updated `/api/index.js`**: Main API handler with proper module loading and error handling
+5. **Updated `vercel.json`**: Better routing configuration and function timeouts for database operations
+6. **Added Dynamic Module Loading**: Database modules are only loaded when actually needed to prevent import errors
 
 ## Fallback Behavior
 

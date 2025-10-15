@@ -21,8 +21,7 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Handle preflight requests explicitly
-app.options('*', cors());
+// CORS middleware will handle preflight requests automatically
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -193,20 +192,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server only if not in serverless environment
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/api/health`);
-    console.log("Available endpoints:");
-    console.log("  POST /api/auth/register - Register new user");
-    console.log("  POST /api/auth/login - Login user");
-    console.log("  GET /api/auth/profile - Get user profile");
-    console.log("  PUT /api/auth/profile - Update user profile");
-    console.log("  GET /api/auth/users - Get all users");
-    console.log("  GET /api/health - Health check");
-  });
-}
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log("Available endpoints:");
+  console.log("  POST /api/auth/register - Register new user");
+  console.log("  POST /api/auth/login - Login user");
+  console.log("  GET /api/auth/profile - Get user profile");
+  console.log("  PUT /api/auth/profile - Update user profile");
+  console.log("  GET /api/auth/users - Get all users");
+  console.log("  GET /api/health - Health check");
+});
 
-// Export the app for serverless deployment
+// Export the app for Vercel
 module.exports = app;

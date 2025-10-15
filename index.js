@@ -10,37 +10,60 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Production-ready authentication endpoints
-app.post("/api/auth/register", (req, res) => {
-  console.log('Register request received:', req.body);
-  
-  const { username, email, password } = req.body;
-  
-  // Basic validation
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Please provide email and password"
+// Check if database credentials are available
+const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
+
+if (hasDatabase) {
+  // Use real database when credentials are available
+  console.log('🗄️ Using real database connection');
+  try {
+    const { initializeDatabase } = require("./config/db");
+    const userRoutes = require("./routes/userRoutes");
+    app.use("/api/auth", userRoutes);
+    
+    // Initialize database
+    initializeDatabase().then(() => {
+      console.log('✅ Database connected successfully');
+    }).catch(err => {
+      console.error('❌ Database initialization failed:', err);
     });
+  } catch (error) {
+    console.error('❌ Database modules not found, using mock endpoints');
   }
-
-  // Use provided username or create one from email
-  const finalUsername = username || email.split('@')[0];
-
-  // Mock successful registration
-  res.json({
-    success: true,
-    message: "User registered successfully",
-    data: {
-      userId: Date.now(),
-      username: finalUsername,
-      email: email,
-      token: "jwt_token_" + Date.now()
+} else {
+  console.log('🔧 No database credentials found, using mock endpoints for demo');
+  
+  // Mock registration endpoint
+  app.post("/api/auth/register", (req, res) => {
+    console.log('Register request received:', req.body);
+    
+    const { username, email, password } = req.body;
+    
+    // Basic validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide email and password"
+      });
     }
-  });
-});
 
-app.post("/api/auth/login", (req, res) => {
+    // Use provided username or create one from email
+    const finalUsername = username || email.split('@')[0];
+
+    // Mock successful registration
+    res.json({
+      success: true,
+      message: "User registered successfully",
+      data: {
+        userId: Date.now(),
+        username: finalUsername,
+        email: email,
+        token: "jwt_token_" + Date.now()
+      }
+    });
+  });
+
+  app.post("/api/auth/login", (req, res) => {
   console.log('Login request received:', req.body);
   
   const { email, password } = req.body;
@@ -107,6 +130,7 @@ app.get("/api/auth/users", (req, res) => {
     count: 1
   });
 });
+}
 
 // Health check route
 app.get("/api/health", (req, res) => {

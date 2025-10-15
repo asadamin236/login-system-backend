@@ -223,18 +223,18 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server only if not in serverless environment (like Vercel)
-if (process.env.NODE_ENV !== 'production' && require.main === module) {
+// Start server only in local development
+if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`Health check: http://localhost:${PORT}/api/health`);
     console.log("Available endpoints:");
-    console.log("POST /api/auth/register - Register new user");
-    console.log("POST /api/auth/login - Login user");
-    console.log("GET /api/auth/profile - Get user profile");
-    console.log("PUT /api/auth/profile - Update user profile");
-    console.log("GET /api/auth/users - Get all users");
-    console.log("GET /api/health - Health check");
+    console.log("  POST /api/auth/register - Register new user");
+    console.log("  POST /api/auth/login - Login user");
+    console.log("  GET /api/auth/profile - Get user profile");
+    console.log("  PUT /api/auth/profile - Update user profile");
+    console.log("  GET /api/auth/users - Get all users");
+    console.log("  GET /api/health - Health check");
   });
 }
 

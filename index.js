@@ -12,15 +12,20 @@ app.use(express.urlencoded({ extended: true }));
 
 // Production-ready authentication endpoints
 app.post("/api/auth/register", (req, res) => {
+  console.log('Register request received:', req.body);
+  
   const { username, email, password } = req.body;
   
   // Basic validation
-  if (!username || !email || !password) {
+  if (!email || !password) {
     return res.status(400).json({
       success: false,
-      message: "Please provide username, email, and password"
+      message: "Please provide email and password"
     });
   }
+
+  // Use provided username or create one from email
+  const finalUsername = username || email.split('@')[0];
 
   // Mock successful registration
   res.json({
@@ -28,7 +33,7 @@ app.post("/api/auth/register", (req, res) => {
     message: "User registered successfully",
     data: {
       userId: Date.now(),
-      username: username,
+      username: finalUsername,
       email: email,
       token: "jwt_token_" + Date.now()
     }
@@ -36,6 +41,8 @@ app.post("/api/auth/register", (req, res) => {
 });
 
 app.post("/api/auth/login", (req, res) => {
+  console.log('Login request received:', req.body);
+  
   const { email, password } = req.body;
   
   // Basic validation
@@ -52,7 +59,7 @@ app.post("/api/auth/login", (req, res) => {
     message: "Login successful",
     data: {
       userId: 1,
-      username: "demo_user",
+      username: email.split('@')[0],
       email: email,
       token: "jwt_token_" + Date.now()
     }

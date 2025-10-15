@@ -3,14 +3,14 @@
   "name": "user-authentication-api",
   "builds": [
     {
-      "src": "index.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.js"
+      "destination": "/api/index.js"
     }
   ],
   "env": {

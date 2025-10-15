@@ -2,8 +2,9 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const { initializeDatabase } = require('./config/db');
-const userRoutes = require('./routes/userRoutes');
+// Temporarily disable database for testing
+// const { initializeDatabase } = require('./config/db');
+// const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,8 +14,43 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/api/auth', userRoutes);
+// Temporarily disable auth routes for testing
+// app.use('/api/auth', userRoutes);
+
+// Test routes
+app.get('/', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Authentication API is running!',
+        timestamp: new Date().toISOString()
+    });
+});
+
+app.post('/api/auth/register', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Registration endpoint working (database disabled for testing)',
+        data: {
+            userId: 1,
+            username: 'test_user',
+            email: req.body.email || 'test@example.com',
+            token: 'test_token_123'
+        }
+    });
+});
+
+app.post('/api/auth/login', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Login endpoint working (database disabled for testing)',
+        data: {
+            userId: 1,
+            username: 'test_user',
+            email: req.body.email || 'test@example.com',
+            token: 'test_token_123'
+        }
+    });
+});
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -42,28 +78,12 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Initialize database and start server
-const startServer = async () => {
-    try {
-        // Initialize database
-        await initializeDatabase();
-        console.log('Database connection established');
-
-        // Start server
-        app.listen(PORT, () => {
-            console.log(`Server is running on port ${PORT}`);
-            console.log(`Health check: http://localhost:${PORT}/api/health`);
-            console.log('Available endpoints:');
-            console.log('  POST /api/auth/register - Register new user');
-            console.log('  POST /api/auth/login - Login user');
-            console.log('  GET /api/auth/profile - Get user profile (protected)');
-            console.log('  PUT /api/auth/profile - Update user profile (protected)');
-            console.log('  GET /api/auth/users - Get all users (protected)');
-        });
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
-};
-
-startServer();
+// Start server without database for testing
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+    console.log('Available test endpoints:');
+    console.log('  POST /api/auth/register - Test register');
+    console.log('  POST /api/auth/login - Test login');
+    console.log('  GET /api/health - Health check');
+});

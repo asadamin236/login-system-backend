@@ -5,15 +5,28 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Debug middleware to log all requests (before other middleware)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Body:`, req.body);
+  next();
+});
+
+// CORS middleware with more permissive settings
 app.use(cors({
-  origin: '*',
-  credentials: false,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173', 'https://login-system-frontend-gamma.vercel.app'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Check if database credentials are available
 const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
@@ -162,12 +175,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// Debug middleware to log all requests
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Body:`, req.body);
-  next();
-});
-
 // 404 handler (must be last)
 app.use((req, res) => {
   console.log(`404 - Route not found: ${req.method} ${req.path}`);
@@ -186,15 +193,20 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
-  console.log("Available endpoints:");
-  console.log("  POST /api/auth/register - Register new user");
-  console.log("  POST /api/auth/login - Login user");
-  console.log("  GET /api/auth/profile - Get user profile");
-  console.log("  PUT /api/auth/profile - Update user profile");
-  console.log("  GET /api/auth/users - Get all users");
-  console.log("  GET /api/health - Health check");
-});
+// Start server only if not in serverless environment
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+    console.log("Available endpoints:");
+    console.log("  POST /api/auth/register - Register new user");
+    console.log("  POST /api/auth/login - Login user");
+    console.log("  GET /api/auth/profile - Get user profile");
+    console.log("  PUT /api/auth/profile - Update user profile");
+    console.log("  GET /api/auth/users - Get all users");
+    console.log("  GET /api/health - Health check");
+  });
+}
+
+// Export the app for serverless deployment
+module.exports = app;

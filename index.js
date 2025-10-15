@@ -47,7 +47,7 @@ const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB
 
 if (hasDatabase) {
   // Use real database when credentials are available
-  console.log('Using real database connection');
+  console.log('🗄️ Using real database connection');
   try {
     const { initializeDatabase } = require("./config/db");
     const userRoutes = require("./routes/userRoutes");
@@ -55,71 +55,87 @@ if (hasDatabase) {
     
     // Initialize database
     initializeDatabase().then(() => {
-      console.log('Database connected successfully');
+      console.log('✅ Database connected successfully');
     }).catch(err => {
-      console.error('Database initialization failed:', err);
+      console.error('❌ Database initialization failed:', err);
     });
   } catch (error) {
-    console.error('Database modules not found, using mock endpoints');
+    console.error('❌ Database modules not found, using mock endpoints:', error.message);
   }
 } else {
   console.log('No database credentials found, using mock endpoints for demo');
   
   // Mock registration endpoint
   app.post("/api/auth/register", (req, res) => {
-    console.log('Register request received:', req.body);
-    
-    const { username, email, password } = req.body;
-    
-    // Basic validation
-    if (!email || !password) {
-      return res.status(400).json({
+    try {
+      console.log('📝 Register request received:', req.body);
+      
+      const { username, email, password } = req.body;
+      
+      // Basic validation
+      if (!email || !password) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide email and password"
+        });
+      }
+
+      // Use provided username or create one from email
+      const finalUsername = username || email.split('@')[0];
+
+      // Mock successful registration
+      res.json({
+        success: true,
+        message: "User registered successfully",
+        data: {
+          userId: Date.now(),
+          username: finalUsername,
+          email: email,
+          token: "jwt_token_" + Date.now()
+        }
+      });
+    } catch (error) {
+      console.error('❌ Registration error:', error);
+      res.status(500).json({
         success: false,
-        message: "Please provide email and password"
+        message: "Internal server error during registration"
       });
     }
-
-    // Use provided username or create one from email
-    const finalUsername = username || email.split('@')[0];
-
-    // Mock successful registration
-    res.json({
-      success: true,
-      message: "User registered successfully",
-      data: {
-        userId: Date.now(),
-        username: finalUsername,
-        email: email,
-        token: "jwt_token_" + Date.now()
-      }
-    });
   });
 
   app.post("/api/auth/login", (req, res) => {
-  console.log('Login request received:', req.body);
-  
-  const { email, password } = req.body;
-  
-  // Basic validation
-  if (!email || !password) {
-    return res.status(400).json({
-      success: false,
-      message: "Please provide email and password"
-    });
-  }
+    try {
+      console.log('📝 Login request received:', req.body);
+      
+      const { email, password } = req.body;
+      
+      // Basic validation
+      if (!email || !password) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide email and password"
+        });
+      }
 
-  // Mock successful login
-  res.json({
-    success: true,
-    message: "Login successful",
-    data: {
-      userId: 1,
-      username: email.split('@')[0],
-      email: email,
-      token: "jwt_token_" + Date.now()
+      // Mock successful login
+      res.json({
+        success: true,
+        message: "Login successful",
+        data: {
+          userId: 1,
+          username: email.split('@')[0],
+          email: email,
+          token: "jwt_token_" + Date.now()
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error during login"
+      });
     }
   });
-});
 
 app.get("/api/auth/profile", (req, res) => {
   res.json({

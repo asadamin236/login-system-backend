@@ -1,4 +1,4 @@
-// Vercel Serverless Function for Root
+// Vercel Serverless Function for Health Check
 export default function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,10 +11,10 @@ export default function handler(req, res) {
     return;
   }
 
-  // Root route response
+  // Health check response
   res.status(200).json({
     success: true,
-    message: "Authentication API is running!",
+    message: "Server is running successfully",
     timestamp: new Date().toISOString(),
     endpoints: [
       "POST /api/auth/register",

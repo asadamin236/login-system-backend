@@ -1,29 +1,49 @@
 {
   "version": 2,
   "name": "user-authentication-api",
-  "builds": [
-    {
-      "src": "index.js",
-      "use": "@vercel/node"
+  "functions": {
+    "api/*.js": {
+      "runtime": "@vercel/node@2"
     }
-  ],
+  },
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.js"
+      "source": "/",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/api/auth/login",
+      "destination": "/api/auth/login"
+    },
+    {
+      "source": "/api/auth/register", 
+      "destination": "/api/auth/register"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health"
     }
   ],
-  "env": {
-    "NODE_ENV": "production"
-  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH" },
-        { "key": "Access-Control-Allow-Headers", "value": "Origin, X-Requested-With, Content-Type, Accept, Authorization" },
-        { "key": "Access-Control-Allow-Credentials", "value": "true" }
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        }
       ]
     }
   ]

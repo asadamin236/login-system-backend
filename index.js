@@ -5,12 +5,6 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Debug middleware to log all requests (before other middleware)
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Body:`, req.body);
-  next();
-});
-
 // CORS middleware - allow all origins for maximum compatibility
 app.use(cors({
   origin: true, // Allow all origins
@@ -42,12 +36,18 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Simple request logging (after body parsing)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
 // Check if database credentials are available
 const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
 
 if (hasDatabase) {
   // Use real database when credentials are available
-  console.log('🗄️ Using real database connection');
+  console.log('Using real database connection');
   try {
     const { initializeDatabase } = require("./config/db");
     const userRoutes = require("./routes/userRoutes");
@@ -55,15 +55,15 @@ if (hasDatabase) {
     
     // Initialize database
     initializeDatabase().then(() => {
-      console.log('✅ Database connected successfully');
+      console.log('Database connected successfully');
     }).catch(err => {
-      console.error('❌ Database initialization failed:', err);
+      console.error('Database initialization failed:', err);
     });
   } catch (error) {
-    console.error('❌ Database modules not found, using mock endpoints');
+    console.error('Database modules not found, using mock endpoints');
   }
 } else {
-  console.log('🔧 No database credentials found, using mock endpoints for demo');
+  console.log('No database credentials found, using mock endpoints for demo');
   
   // Mock registration endpoint
   app.post("/api/auth/register", (req, res) => {
@@ -207,18 +207,20 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/api/health`);
-  console.log("Available endpoints:");
-  console.log("  POST /api/auth/register - Register new user");
-  console.log("  POST /api/auth/login - Login user");
-  console.log("  GET /api/auth/profile - Get user profile");
-  console.log("  PUT /api/auth/profile - Update user profile");
-  console.log("  GET /api/auth/users - Get all users");
-  console.log("  GET /api/health - Health check");
-});
+// Start server only if not in serverless environment (like Vercel)
+if (process.env.NODE_ENV !== 'production' && require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/api/health`);
+    console.log("Available endpoints:");
+    console.log("POST /api/auth/register - Register new user");
+    console.log("POST /api/auth/login - Login user");
+    console.log("GET /api/auth/profile - Get user profile");
+    console.log("PUT /api/auth/profile - Update user profile");
+    console.log("GET /api/auth/users - Get all users");
+    console.log("GET /api/health - Health check");
+  });
+}
 
 // Export the app for Vercel
 module.exports = app;

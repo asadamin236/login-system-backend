@@ -117,11 +117,34 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// 404 handler
+// Root route for testing
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Authentication API is running!",
+    endpoints: [
+      "POST /api/auth/register",
+      "POST /api/auth/login", 
+      "GET /api/auth/profile",
+      "PUT /api/auth/profile",
+      "GET /api/auth/users",
+      "GET /api/health"
+    ]
+  });
+});
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Body:`, req.body);
+  next();
+});
+
+// 404 handler (must be last)
 app.use((req, res) => {
+  console.log(`404 - Route not found: ${req.method} ${req.path}`);
   res.status(404).json({
     success: false,
-    message: "Route not found",
+    message: `Route not found: ${req.method} ${req.path}`,
   });
 });
 

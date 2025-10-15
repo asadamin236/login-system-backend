@@ -1,7 +1,30 @@
 {
   "version": 2,
   "name": "user-authentication-api",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    },
+    "api/auth/register.js": {
+      "maxDuration": 30
+    },
+    "api/auth/login.js": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/auth/register",
+      "destination": "/api/auth/register"
+    },
+    {
+      "source": "/api/auth/login",
+      "destination": "/api/auth/login"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health"
+    },
     {
       "source": "/(.*)",
       "destination": "/api/index"

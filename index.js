@@ -60,10 +60,15 @@ if (hasDatabase) {
       console.error('❌ Database initialization failed:', err);
     });
   } catch (error) {
-    console.error('❌ Database modules not found, using mock endpoints:', error.message);
+    console.error('❌ Database modules not found, falling back to mock endpoints:', error.message);
+    setupMockEndpoints();
   }
 } else {
-  console.log('No database credentials found, using mock endpoints for demo');
+  console.log('🔧 No database credentials found, using mock endpoints for demo');
+  setupMockEndpoints();
+}
+
+function setupMockEndpoints() {
   
   // Mock registration endpoint
   app.post("/api/auth/register", (req, res) => {

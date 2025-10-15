@@ -1,5 +1,7 @@
-// Vercel Serverless Function for Register
-export default function handler(req, res) {
+// Vercel Serverless Function for Register with Real Database
+const { registerUser } = require('../../controllers/userController');
+
+export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -19,38 +21,55 @@ export default function handler(req, res) {
     });
   }
 
-  try {
-    console.log('📝 Register request received:', req.body);
-    
-    const { username, email, password } = req.body;
-    
-    // Basic validation
-    if (!email || !password) {
-      return res.status(400).json({
+  // Check if database credentials are available
+  const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
+
+  if (hasDatabase) {
+    // Use real database registration
+    try {
+      await registerUser(req, res);
+    } catch (error) {
+      console.error('❌ Database registration error:', error);
+      res.status(500).json({
         success: false,
-        message: "Please provide email and password"
+        message: "Database connection error during registration"
       });
     }
-
-    // Use provided username or create one from email
-    const finalUsername = username || email.split('@')[0];
-
-    // Mock successful registration
-    res.status(200).json({
-      success: true,
-      message: "User registered successfully",
-      data: {
-        userId: Date.now(),
-        username: finalUsername,
-        email: email,
-        token: "jwt_token_" + Date.now()
+  } else {
+    // Fallback to mock registration for demo
+    try {
+      console.log('📝 Register request received (MOCK MODE):', req.body);
+      
+      const { username, email, password } = req.body;
+      
+      // Basic validation
+      if (!email || !password) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide email and password"
+        });
       }
-    });
-  } catch (error) {
-    console.error('❌ Registration error:', error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error during registration"
-    });
+
+      // Use provided username or create one from email
+      const finalUsername = username || email.split('@')[0];
+
+      // Mock successful registration
+      res.status(200).json({
+        success: true,
+        message: "User registered successfully (MOCK MODE - No database connection)",
+        data: {
+          userId: Date.now(),
+          username: finalUsername,
+          email: email,
+          token: "jwt_token_" + Date.now()
+        }
+      });
+    } catch (error) {
+      console.error('❌ Registration error:', error);
+      res.status(500).json({
+        success: false,
+        message: "Internal server error during registration"
+      });
+    }
   }
 }

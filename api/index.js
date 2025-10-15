@@ -1,5 +1,7 @@
-// Vercel Serverless Function - Main API Handler
-export default function handler(req, res) {
+// Vercel Serverless Function - Main API Handler with Real Database
+const { registerUser, loginUser, getUserProfile, updateUserProfile, getAllUsers, authenticateToken } = require('../controllers/userController');
+
+export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -13,14 +15,41 @@ export default function handler(req, res) {
 
   const { url, method } = req;
   
+  // Check if database credentials are available
+  const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
+  
   try {
-    // Route handling
+    // Route handling with database support
     if (url === '/api/auth/login' && method === 'POST') {
-      return handleLogin(req, res);
+      return hasDatabase ? await loginUser(req, res) : handleLogin(req, res);
     }
     
     if (url === '/api/auth/register' && method === 'POST') {
-      return handleRegister(req, res);
+      return hasDatabase ? await registerUser(req, res) : handleRegister(req, res);
+    }
+    
+    if (url === '/api/auth/profile' && method === 'GET') {
+      if (hasDatabase) {
+        return authenticateToken(req, res, () => getUserProfile(req, res));
+      } else {
+        return handleProfile(req, res);
+      }
+    }
+    
+    if (url === '/api/auth/profile' && method === 'PUT') {
+      if (hasDatabase) {
+        return authenticateToken(req, res, () => updateUserProfile(req, res));
+      } else {
+        return handleUpdateProfile(req, res);
+      }
+    }
+    
+    if (url === '/api/auth/users' && method === 'GET') {
+      if (hasDatabase) {
+        return authenticateToken(req, res, () => getAllUsers(req, res));
+      } else {
+        return handleGetUsers(req, res);
+      }
     }
     
     if (url === '/api/health' && method === 'GET') {
@@ -31,11 +60,15 @@ export default function handler(req, res) {
     if (url === '/' || url === '/api' || !url.includes('/api/')) {
       return res.status(200).json({
         success: true,
-        message: "Authentication API is running!",
+        message: hasDatabase ? "Authentication API is running with database!" : "Authentication API is running in mock mode!",
         timestamp: new Date().toISOString(),
+        mode: hasDatabase ? "database" : "mock",
         endpoints: [
           "POST /api/auth/register",
           "POST /api/auth/login", 
+          "GET /api/auth/profile",
+          "PUT /api/auth/profile",
+          "GET /api/auth/users",
           "GET /api/health"
         ]
       });
@@ -56,10 +89,10 @@ export default function handler(req, res) {
   }
 }
 
-// Login handler
+// Mock handlers for fallback when no database is available
 function handleLogin(req, res) {
   try {
-    console.log('📝 Login request received:', req.body);
+    console.log('📝 Login request received (MOCK MODE):', req.body);
     
     const { email, password } = req.body;
     
@@ -72,7 +105,7 @@ function handleLogin(req, res) {
 
     res.status(200).json({
       success: true,
-      message: "Login successful",
+      message: "Login successful (MOCK MODE)",
       data: {
         userId: 1,
         username: email.split('@')[0],
@@ -89,10 +122,9 @@ function handleLogin(req, res) {
   }
 }
 
-// Register handler
 function handleRegister(req, res) {
   try {
-    console.log('📝 Register request received:', req.body);
+    console.log('📝 Register request received (MOCK MODE):', req.body);
     
     const { username, email, password } = req.body;
     
@@ -107,7 +139,7 @@ function handleRegister(req, res) {
 
     res.status(200).json({
       success: true,
-      message: "User registered successfully",
+      message: "User registered successfully (MOCK MODE)",
       data: {
         userId: Date.now(),
         username: finalUsername,
@@ -124,7 +156,48 @@ function handleRegister(req, res) {
   }
 }
 
-// Health check handler
+function handleProfile(req, res) {
+  res.json({
+    success: true,
+    data: {
+      id: 1,
+      username: "demo_user",
+      email: "demo@example.com",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  });
+}
+
+function handleUpdateProfile(req, res) {
+  res.json({
+    success: true,
+    message: "Profile updated successfully (MOCK MODE)",
+    data: {
+      id: 1,
+      username: req.body.username || "demo_user",
+      email: req.body.email || "demo@example.com",
+      updatedAt: new Date().toISOString()
+    }
+  });
+}
+
+function handleGetUsers(req, res) {
+  res.json({
+    success: true,
+    data: [
+      {
+        id: 1,
+        username: "demo_user",
+        email: "demo@example.com",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+    ],
+    count: 1
+  });
+}
+
 function handleHealth(req, res) {
   res.status(200).json({
     success: true,
@@ -132,3 +205,4 @@ function handleHealth(req, res) {
     timestamp: new Date().toISOString()
   });
 }
+

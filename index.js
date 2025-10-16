@@ -42,12 +42,29 @@ app.use((req, res, next) => {
   next();
 });
 
-// Check if database credentials are available
-const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
+// Force database connection - NO MOCK MODE
+console.log('🗄️ FORCING real database connection - NO MOCK MODE');
 
-if (hasDatabase) {
-  // Use real database when credentials are available
-  console.log('🗄️ Using real database connection');
+// Check if database credentials are available
+const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_NAME;
+
+console.log('Environment check:');
+console.log('DB_HOST:', process.env.DB_HOST ? 'SET' : 'MISSING');
+console.log('DB_USER:', process.env.DB_USER ? 'SET' : 'MISSING'); 
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? 'SET' : 'MISSING');
+console.log('DB_NAME:', process.env.DB_NAME ? 'SET' : 'MISSING');
+
+if (!hasDatabase) {
+  console.error('❌ CRITICAL: Database credentials not found!');
+  console.error('Please set DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in environment variables');
+  
+  // In serverless environment, don't exit - just log error
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    console.error('❌ Running in production without database - this will cause errors');
+  } else {
+    process.exit(1); // Exit only in local development
+  }
+} else {
   try {
     const { initializeDatabase } = require("./config/db");
     const userRoutes = require("./routes/userRoutes");
@@ -55,135 +72,27 @@ if (hasDatabase) {
     
     // Initialize database
     initializeDatabase().then(() => {
-      console.log('✅ Database connected successfully');
+      console.log('✅ Database connected successfully - REAL MODE ACTIVE');
     }).catch(err => {
       console.error('❌ Database initialization failed:', err);
+      console.error('❌ CRITICAL: Cannot start without database connection');
+      
+      // In serverless environment, don't exit - just log error
+      if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+        process.exit(1); // Exit only in local development
+      }
     });
   } catch (error) {
-    console.error('❌ Database modules not found, falling back to mock endpoints:', error.message);
-    setupMockEndpoints();
+    console.error('❌ CRITICAL: Database modules not found:', error.message);
+    
+    // In serverless environment, don't exit - just log error
+    if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+      process.exit(1); // Exit only in local development
+    }
   }
-} else {
-  console.log('🔧 No database credentials found, using mock endpoints for demo');
-  setupMockEndpoints();
 }
 
-function setupMockEndpoints() {
-  
-  // Mock registration endpoint
-  app.post("/api/auth/register", (req, res) => {
-    try {
-      console.log('📝 Register request received:', req.body);
-      
-      const { username, email, password } = req.body;
-      
-      // Basic validation
-      if (!email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: "Please provide email and password"
-        });
-      }
-
-      // Use provided username or create one from email
-      const finalUsername = username || email.split('@')[0];
-
-      // Mock successful registration
-      res.json({
-        success: true,
-        message: "User registered successfully",
-        data: {
-          userId: Date.now(),
-          username: finalUsername,
-          email: email,
-          token: "jwt_token_" + Date.now()
-        }
-      });
-    } catch (error) {
-      console.error('❌ Registration error:', error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error during registration"
-      });
-    }
-  });
-
-  app.post("/api/auth/login", (req, res) => {
-    try {
-      console.log('📝 Login request received:', req.body);
-      
-      const { email, password } = req.body;
-      
-      // Basic validation
-      if (!email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: "Please provide email and password"
-        });
-      }
-
-      // Mock successful login
-      res.json({
-        success: true,
-        message: "Login successful",
-        data: {
-          userId: 1,
-          username: email.split('@')[0],
-          email: email,
-          token: "jwt_token_" + Date.now()
-        }
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({
-        success: false,
-        message: "Internal server error during login"
-      });
-    }
-  });
-
-app.get("/api/auth/profile", (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      id: 1,
-      username: "demo_user",
-      email: "demo@example.com",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  });
-});
-
-app.put("/api/auth/profile", (req, res) => {
-  res.json({
-    success: true,
-    message: "Profile updated successfully",
-    data: {
-      id: 1,
-      username: req.body.username || "demo_user",
-      email: req.body.email || "demo@example.com",
-      updatedAt: new Date().toISOString()
-    }
-  });
-});
-
-app.get("/api/auth/users", (req, res) => {
-  res.json({
-    success: true,
-    data: [
-      {
-        id: 1,
-        username: "demo_user",
-        email: "demo@example.com",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ],
-    count: 1
-  });
-});
-}
+// Mock endpoints removed - ONLY REAL DATABASE MODE
 
 // Health check route
 app.get("/api/health", (req, res) => {
@@ -196,9 +105,18 @@ app.get("/api/health", (req, res) => {
 
 // Root route for testing
 app.get("/", (req, res) => {
+  const dbStatus = hasDatabase ? "REAL DATABASE MODE" : "NO DATABASE CREDENTIALS";
+  
   res.json({
     success: true,
-    message: "Authentication API is running!",
+    message: `Authentication API is running! - ${dbStatus}`,
+    mode: hasDatabase ? "database" : "no_database",
+    environment: {
+      DB_HOST: process.env.DB_HOST ? 'SET' : 'MISSING',
+      DB_USER: process.env.DB_USER ? 'SET' : 'MISSING',
+      DB_PASSWORD: process.env.DB_PASSWORD ? 'SET' : 'MISSING',
+      DB_NAME: process.env.DB_NAME ? 'SET' : 'MISSING'
+    },
     endpoints: [
       "POST /api/auth/register",
       "POST /api/auth/login", 
@@ -243,5 +161,6 @@ if (require.main === module) {
   });
 }
 
-// Export the app for Vercel
+// Export for Vercel serverless function
 module.exports = app;
+module.exports.default = app;

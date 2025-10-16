@@ -2,40 +2,14 @@
   "version": 2,
   "name": "user-authentication-api",
   "functions": {
-    "api/index.js": {
-      "maxDuration": 30
-    },
-    "api/auth/register.js": {
-      "maxDuration": 30
-    },
-    "api/auth/login.js": {
+    "index.js": {
       "maxDuration": 30
     }
   },
   "rewrites": [
     {
-      "source": "/api/auth/register",
-      "destination": "/api/auth/register"
-    },
-    {
-      "source": "/api/auth/register-db",
-      "destination": "/api/auth/register-db"
-    },
-    {
-      "source": "/api/auth/login",
-      "destination": "/api/auth/login"
-    },
-    {
-      "source": "/api/test-db",
-      "destination": "/api/test-db"
-    },
-    {
-      "source": "/api/health",
-      "destination": "/api/health"
-    },
-    {
       "source": "/(.*)",
-      "destination": "/api/index"
+      "destination": "/index.js"
     }
   ],
   "headers": [

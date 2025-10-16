@@ -18,8 +18,16 @@
       "destination": "/api/auth/register"
     },
     {
+      "source": "/api/auth/register-db",
+      "destination": "/api/auth/register-db"
+    },
+    {
       "source": "/api/auth/login",
       "destination": "/api/auth/login"
+    },
+    {
+      "source": "/api/test-db",
+      "destination": "/api/test-db"
     },
     {
       "source": "/api/health",

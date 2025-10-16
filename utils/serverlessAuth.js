@@ -7,8 +7,10 @@ const { initializeServerlessDatabase } = require('./serverlessDb');
 const registerUserServerless = async (username, email, password) => {
   try {
     console.log('🔄 Starting serverless user registration...');
+    console.log('Registration data:', { username, email, password: '***' });
     
     // Initialize database
+    console.log('🗄️ Initializing database for registration...');
     const pool = await initializeServerlessDatabase();
     
     // Validation

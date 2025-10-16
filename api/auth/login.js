@@ -37,18 +37,12 @@ module.exports = async function handler(req, res) {
     const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
 
     if (hasDatabase) {
-      // Use real database login
+      // Use real database login with serverless utilities
       try {
-        // Dynamically import database modules only when needed
-        const { loginUser } = require('../../controllers/userController');
+        const { loginUserServerless } = require('../../utils/serverlessAuth');
         
-        // Initialize database connection if needed
-        const { initializeDatabase } = require('../../config/db');
-        await initializeDatabase();
-        
-        // Call the login function
-        await loginUser(req, res);
-        return; // Exit here as loginUser handles the response
+        const result = await loginUserServerless(email, password);
+        return res.status(200).json(result);
       } catch (dbError) {
         console.error('❌ Database login error:', dbError);
         // Fall through to mock mode if database fails
@@ -56,16 +50,22 @@ module.exports = async function handler(req, res) {
     }
 
     // Fallback to mock login (either no DB credentials or DB error)
+    const mockUserId = 1;
+    
+    // Generate proper JWT token even in mock mode
+    const { generateToken } = require('../../utils/jwtUtils');
+    const mockToken = generateToken(mockUserId, email);
+
     res.status(200).json({
       success: true,
       message: hasDatabase ? 
         "Login successful (Database connection failed - using mock mode)" : 
         "Login successful (MOCK MODE - No database credentials)",
       data: {
-        userId: 1,
+        userId: mockUserId,
         username: email.split('@')[0],
         email: email,
-        token: "jwt_token_" + Date.now()
+        token: mockToken
       }
     });
 

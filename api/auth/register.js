@@ -37,18 +37,12 @@ module.exports = async function handler(req, res) {
     const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD;
 
     if (hasDatabase) {
-      // Use real database registration
+      // Use real database registration with serverless utilities
       try {
-        // Dynamically import database modules only when needed
-        const { registerUser } = require('../../controllers/userController');
+        const { registerUserServerless } = require('../../utils/serverlessAuth');
         
-        // Initialize database connection if needed
-        const { initializeDatabase } = require('../../config/db');
-        await initializeDatabase();
-        
-        // Call the registration function
-        await registerUser(req, res);
-        return; // Exit here as registerUser handles the response
+        const result = await registerUserServerless(username, email, password);
+        return res.status(201).json(result);
       } catch (dbError) {
         console.error('Database registration error:', dbError);
         // Fall through to mock mode if database fails
@@ -57,6 +51,11 @@ module.exports = async function handler(req, res) {
 
     // Fallback to mock registration (either no DB credentials or DB error)
     const finalUsername = username || email.split('@')[0];
+    const mockUserId = Date.now();
+    
+    // Generate proper JWT token even in mock mode
+    const { generateToken } = require('../../utils/jwtUtils');
+    const mockToken = generateToken(mockUserId, email);
 
     res.status(200).json({
       success: true,
@@ -64,10 +63,10 @@ module.exports = async function handler(req, res) {
         "User registered successfully (Database connection failed - using mock mode)" : 
         "User registered successfully (MOCK MODE - No database credentials)",
       data: {
-        userId: Date.now(),
+        userId: mockUserId,
         username: finalUsername,
         email: email,
-        token: "jwt_token_" + Date.now()
+        token: mockToken
       }
     });
 

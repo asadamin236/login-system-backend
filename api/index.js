@@ -1,106 +1,130 @@
-// Vercel API Handler - Real Database Only
-const express = require("express");
-const cors = require("cors");
+// Vercel Serverless Function Handler
+module.exports = async (req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-// Create Express app
-const app = express();
-
-// CORS middleware
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control', 'Pragma'],
-}));
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Force database connection - NO MOCK MODE
-console.log('🗄️ VERCEL: FORCING real database connection - NO MOCK MODE');
-
-// Check if database credentials are available
-const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_NAME;
-
-console.log('VERCEL Environment check:');
-console.log('DB_HOST:', process.env.DB_HOST ? 'SET' : 'MISSING');
-console.log('DB_USER:', process.env.DB_USER ? 'SET' : 'MISSING'); 
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? 'SET' : 'MISSING');
-console.log('DB_NAME:', process.env.DB_NAME ? 'SET' : 'MISSING');
-
-if (!hasDatabase) {
-  console.error('❌ VERCEL CRITICAL: Database credentials not found!');
-  console.error('Please set DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in Vercel environment variables');
-} else {
-  try {
-    const { initializeDatabase } = require("../config/db");
-    const userRoutes = require("../routes/userRoutes");
-    app.use("/api/auth", userRoutes);
-    
-    // Initialize database
-    initializeDatabase().then(() => {
-      console.log('✅ VERCEL: Database connected successfully - REAL MODE ACTIVE');
-    }).catch(err => {
-      console.error('❌ VERCEL: Database initialization failed:', err);
-    });
-  } catch (error) {
-    console.error('❌ VERCEL CRITICAL: Database modules not found:', error.message);
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
-}
 
-// Health check route
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Vercel API is running successfully",
-    timestamp: new Date().toISOString(),
-  });
-});
+  try {
+    console.log('🗄️ VERCEL: Serverless function called');
+    console.log('Method:', req.method);
+    console.log('URL:', req.url);
+    
+    // Check if database credentials are available
+    const hasDatabase = process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_NAME;
+    
+    console.log('VERCEL Environment check:');
+    console.log('DB_HOST:', process.env.DB_HOST ? 'SET' : 'MISSING');
+    console.log('DB_USER:', process.env.DB_USER ? 'SET' : 'MISSING'); 
+    console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? 'SET' : 'MISSING');
+    console.log('DB_NAME:', process.env.DB_NAME ? 'SET' : 'MISSING');
 
-// Root route for testing
-app.get("/", (req, res) => {
-  const dbStatus = hasDatabase ? "REAL DATABASE MODE" : "NO DATABASE CREDENTIALS";
-  
-  res.json({
-    success: true,
-    message: `Vercel Authentication API is running! - ${dbStatus}`,
-    mode: hasDatabase ? "database" : "no_database",
-    environment: {
-      DB_HOST: process.env.DB_HOST ? 'SET' : 'MISSING',
-      DB_USER: process.env.DB_USER ? 'SET' : 'MISSING',
-      DB_PASSWORD: process.env.DB_PASSWORD ? 'SET' : 'MISSING',
-      DB_NAME: process.env.DB_NAME ? 'SET' : 'MISSING'
-    },
-    endpoints: [
-      "POST /api/auth/register",
-      "POST /api/auth/login", 
-      "GET /api/auth/profile",
-      "PUT /api/auth/profile",
-      "GET /api/auth/users",
-      "GET /api/health"
-    ]
-  });
-});
+    // Route handling
+    if (req.url === '/' || req.url === '/api' || req.url.startsWith('/?')) {
+      // Root route
+      const dbStatus = hasDatabase ? "REAL DATABASE MODE" : "NO DATABASE CREDENTIALS";
+      
+      return res.status(200).json({
+        success: true,
+        message: `Vercel Authentication API is running! - ${dbStatus}`,
+        mode: hasDatabase ? "database" : "no_database",
+        environment: {
+          DB_HOST: process.env.DB_HOST ? 'SET' : 'MISSING',
+          DB_USER: process.env.DB_USER ? 'SET' : 'MISSING',
+          DB_PASSWORD: process.env.DB_PASSWORD ? 'SET' : 'MISSING',
+          DB_NAME: process.env.DB_NAME ? 'SET' : 'MISSING'
+        },
+        endpoints: [
+          "POST /api/auth/register",
+          "POST /api/auth/login", 
+          "GET /api/auth/profile",
+          "PUT /api/auth/profile",
+          "GET /api/auth/users",
+          "GET /api/health"
+        ]
+      });
+    }
 
-// 404 handler
-app.use((req, res) => {
-  console.log(`VERCEL 404 - Route not found: ${req.method} ${req.path}`);
-  res.status(404).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.path}`,
-  });
-});
+    if (req.url === '/api/health') {
+      return res.status(200).json({
+        success: true,
+        message: "Vercel API is running successfully",
+        timestamp: new Date().toISOString(),
+      });
+    }
 
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error("VERCEL Global error:", err);
-  res.status(500).json({
-    success: false,
-    message: "Internal server error",
-    error: err.message
-  });
-});
+    // Handle auth routes
+    if (req.url.startsWith('/api/auth/')) {
+      if (!hasDatabase) {
+        return res.status(500).json({
+          success: false,
+          message: "Database credentials not configured in Vercel environment variables",
+          environment: {
+            DB_HOST: process.env.DB_HOST ? 'SET' : 'MISSING',
+            DB_USER: process.env.DB_USER ? 'SET' : 'MISSING',
+            DB_PASSWORD: process.env.DB_PASSWORD ? 'SET' : 'MISSING',
+            DB_NAME: process.env.DB_NAME ? 'SET' : 'MISSING'
+          }
+        });
+      }
 
-// Export for Vercel
-module.exports = app;
+      // Try to load and use database modules
+      try {
+        const { initializeDatabase } = require("../config/db");
+        const { registerUser, loginUser, getUserProfile, updateUserProfile, getAllUsers, authenticateToken } = require("../controllers/userController");
+        
+        // Initialize database
+        await initializeDatabase();
+        
+        // Route to appropriate controller
+        if (req.url === '/api/auth/register' && req.method === 'POST') {
+          return await registerUser(req, res);
+        }
+        
+        if (req.url === '/api/auth/login' && req.method === 'POST') {
+          return await loginUser(req, res);
+        }
+        
+        if (req.url === '/api/auth/profile' && req.method === 'GET') {
+          return authenticateToken(req, res, () => getUserProfile(req, res));
+        }
+        
+        if (req.url === '/api/auth/profile' && req.method === 'PUT') {
+          return authenticateToken(req, res, () => updateUserProfile(req, res));
+        }
+        
+        if (req.url === '/api/auth/users' && req.method === 'GET') {
+          return authenticateToken(req, res, () => getAllUsers(req, res));
+        }
+        
+      } catch (dbError) {
+        console.error('❌ VERCEL: Database error:', dbError);
+        return res.status(500).json({
+          success: false,
+          message: "Database connection failed",
+          error: dbError.message
+        });
+      }
+    }
+
+    // 404 for unknown routes
+    return res.status(404).json({
+      success: false,
+      message: `Route not found: ${req.method} ${req.url}`
+    });
+
+  } catch (error) {
+    console.error('❌ VERCEL: Global error:', error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
